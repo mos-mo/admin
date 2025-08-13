@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package monitor;
+
+option go_package = "proto/";
+
+// ====== 공통 메시지 ======
+message AgentInfo {
+  string agent_id = 1;
+  string hostname = 2;
+  string ip = 3;
+}
+
+message AdminInfo {
+  string admin_id = 1;
+  string hostname = 2;
+  string ip = 3;
+}
+
+message FrameData {
+  string agent_id = 1;
+  bytes image_data = 2; // 인코딩된 이미지 (JPEG/PNG/WebP)
+  int64 timestamp = 3;
+  bool is_preview = 4; // true면 저해상도 미리보기, false면 고해상도
+}
+
+message EventData {
+  string agent_id = 1;
+  string event_type = 2; // "keyboard", "mouse", "printer", "usb" 등
+  string event_detail = 3;
+  int64 timestamp = 4;
+}
+
+// ====== Agent → Server ======
+service AgentService {
+  // 화면 프레임 스트리밍
+  rpc StreamFrames(stream FrameData) returns (StreamAck);
+  
+  // 이벤트 스트리밍
+  rpc StreamEvents(stream EventData) returns (StreamAck);
+}
+
+message StreamAck {
+  bool success = 1;
+  string message = 2;
+}
+
+// ====== Admin → Server ======
+service AdminService {
+  // 전체 Agent 목록과 미리보기 프레임 실시간 수신
+  rpc SubscribeOverview(AdminSubscribeRequest) returns (stream FrameData);
+
+  // 특정 Agent의 상세 화면 실시간 수신
+  rpc SubscribeDetail(AgentDetailRequest) returns (stream FrameData);
+
+  // 특정 Agent의 이벤트 로그 실시간 수신
+  rpc SubscribeEvents(AgentDetailRequest) returns (stream EventData);
+}
+
+message AdminSubscribeRequest {
+  string admin_id = 1;
+}
+
+message AgentDetailRequest {
+  string admin_id = 1;
+  string agent_id = 2;
+}
